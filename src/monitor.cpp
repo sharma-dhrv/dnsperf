@@ -1,6 +1,24 @@
+#include <sstream>
 #include <cstdlib>
 #include <thread>
 #include "monitor.h"
+#include <ctime>
+#include <ldns.h>
+
+
+static const char alphanum[] =
+"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+std::string gen_random_prefix() {
+    std::ostringstream os;
+    for (int i = 0; i < 8; i++) {
+        os << alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    std::cout << os.str() << std::endl;
+    return os.str();
+}
+
 
 DNSQueryMonitor::DNSQueryMonitor() {
 }
@@ -14,6 +32,7 @@ DNSQueryMonitor::DNSQueryMonitor(int interval, std::string db_name, std::string 
     this->db_host = db_host;
     this->domains = domains;
     this->running = false;
+    srand(time(0));
 }
 
 DNSQueryMonitor::~DNSQueryMonitor() {
@@ -117,8 +136,85 @@ void DNSQueryMonitor::init() {
 }
 
 
-void send_dns_query(std::string domain, DNSQueryMonitor *monitor_ptr) {
+void send_dns_query(std::string domain_name, DNSQueryMonitor *monitor_ptr) {
 // TODO: make actual dns query and report value to monitor function
+    ldns_resolver *res;
+    ldns_rdf *domain;
+    ldns_pkt *p;
+    ldns_rr_list *a_recs;
+    ldns_status s;
+
+    p = NULL;
+    a_recs = NULL;
+    domain = NULL;
+    res = NULL;
+
+    std::ostringstream os;
+    os << gen_random_prefix() << "." << domain_name;
+    domain_name = os.str();
+
+    /* create a rdf from the domain name provided */
+    domain = ldns_dname_new_frm_str(domain_name.c_str());
+
+    /* create a new resolver from /etc/resolv.conf */
+    s = ldns_resolver_new_frm_file(&res, NULL);
+
+    if (s != LDNS_STATUS_OK) {
+	    std::cerr << "Failed to create DNS resolver." << std::endl;
+        return;
+    }
+
+    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+    //clock_t start = clock();
+
+    /* use the resolver to send a query for the DNS A records of the domain.
+     */
+    p = ldns_resolver_query(res,
+                            domain,
+                            LDNS_RR_TYPE_A,
+                            LDNS_RR_CLASS_IN,
+                            LDNS_RD);
+
+
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    //clock_t end = clock();
+    
+    int duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+    //double duration = (end - start) / (double) CLOCKS_PER_SEC;
+
+    std::cout << "Query Duration (" << domain_name << "): " << duration << " usecs" << std::endl;
+
+    ldns_rdf_deep_free(domain);
+
+	if (!p)  {
+	    std::cerr << "Failed to receive a DNS reply for domain " << domain_name << std::endl;
+	}
+	else {
+        /**
+         * retrieve the A records from the answer section of that packet
+         */
+        a_recs = ldns_pkt_rr_list_by_type(p,
+                                      LDNS_RR_TYPE_A,
+                                      LDNS_SECTION_ANSWER);
+        if (!a_recs) {
+            std::cerr << "Invalid answer after DNS query for domain " << domain_name << std::endl;
+            //ldns_pkt_free(p);
+            //ldns_resolver_deep_free(res);
+        }
+        else {
+            ldns_rr_list_sort(a_recs);
+            ldns_rr_list_print(stdout, a_recs);
+            ldns_rr_list_deep_free(a_recs);
+        }
+	}
+
+	if(!p) {
+        ldns_pkt_free(p);
+    }
+    if(!a_recs) {
+        ldns_rr_list_deep_free(a_recs);
+    }
+	ldns_resolver_deep_free(res);
 }
 
 
@@ -129,14 +225,19 @@ void run_periodic_dns_queries(DNSQueryMonitor *monitor_ptr) {
         std::vector<std::thread> dns_queries;
 
         std::vector<std::string> domains = monitor_ptr->get_domains();
-        for(std::vector<std::string>::iterator it = domains.begin(); it != domains.end(), ++it) {
-            
-            std::thread dns_query_thread = std::thread(run_periodic_dns_queries, this);
-            dns_queries.push_back(dns_query_thread);
+        for(std::vector<std::string>::iterator it = domains.begin(); it != domains.end(); ++it) {
+            std::string domain_name = *it;
+            dns_queries.push_back(std::thread(send_dns_query, domain_name, monitor_ptr));
+            break;
         }
 
+        /*
         for(std::vector<std::thread>::iterator it = dns_queries.begin(); it != dns_queries.end(); ++it) {
             std::thread dns_query = *it;
+            dns_query.join();
+        }
+        */
+        for(std::thread& dns_query : dns_queries) {
             dns_query.join();
         }
 

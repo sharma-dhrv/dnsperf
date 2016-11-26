@@ -5,6 +5,7 @@
 #include "monitor.h"
 #include <chrono>
 #include <thread>
+#include <ldns.h>
 
 DNSQueryMonitor monitor;
 
