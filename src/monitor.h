@@ -1,13 +1,16 @@
 #include <mysql++.h>
 #include <thread>
+#include <mutex>
 
-#ifndef DNSPERF_MONITOR_H
-#define DNSPERF_MONITOR_H 1
+#ifndef DNS_PERF_MONITOR_H
+#define DNS_PERF_MONITOR_H 1
 
-class DNSQueryMonitor {
+class DNSPerfMonitor {
 
     private:
         bool running;
+
+        std::mutex db_mutex;
         mysqlpp::Connection connection;
 
         int interval;
@@ -21,11 +24,9 @@ class DNSQueryMonitor {
         std::map<std::string, float> std_dev_map;
 
     public:
-        DNSQueryMonitor();
+        DNSPerfMonitor(int, std::string, std::string, std::string, std::string, std::vector<std::string>);
 
-        DNSQueryMonitor(int, std::string, std::string, std::string, std::string, std::vector<std::string>);
-
-        ~DNSQueryMonitor();
+        ~DNSPerfMonitor();
 
         void init();
 
@@ -38,6 +39,8 @@ class DNSQueryMonitor {
         int get_interval();
         
         std::vector<std::string> get_domains();
+
+        void update_dns_latency_records(std::string, int);
 };
 
 #endif

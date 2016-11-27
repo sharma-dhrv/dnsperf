@@ -1,10 +1,23 @@
-all: monitor.o dnsperf
+#########################################
+#		Source Directory Makefile		#
+#########################################
 
-monitor.o: monitor.h monitor.cpp
-	g++ -std=c++11 -c monitor.cpp -o monitor.o -I/usr/include/mysql++ -I/usr/include/mysql -I/usr/include/ldns -lmysqlpp -lpthread -lldns
+CXX = g++
+CXXFLAGS = -std=c++11 -c -Wall
+OBJS = monitor.o dnsperf.o
+DEPS = monitor.h
+LIBS = -lmysqlpp -lpthread -lldns -lm
+INCLUDES = -I/usr/include/mysql++ -I/usr/include/mysql -I/usr/include/ldns
 
-dnsperf: dnsperf.cpp monitor.o
-	g++ -std=c++11 dnsperf.cpp monitor.o -o dnsperf -I/usr/include/mysql++ -I/usr/include/mysql -I/usr/include/ldns -lmysqlpp -lpthread -lldns
+all: $(OBJS)
+
+monitor.o: monitor.cpp $(DEPS)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(INCLUDES) $(LIBS)
+
+dnsperf.o: dnsperf.cpp $(DEPS)
+	$(CXX) $(CXXFLAGS) $< -o $@ $(INCLUDES) $(LIBS)
+
+.PHONY: clean
 
 clean:
-	rm *.o dnsperf
+	$(RM) *.o

@@ -1,10 +1,26 @@
-all: db dns
+#################################################
+#       Project's Root Directory Makefile       #
+#################################################
 
-db:	db.cpp
-	g++ db.cpp -o db -I/usr/include/mysql++ -I/usr/include/mysql -lmysqlpp
+SRC_DIR = src
+EXEC = dnsperf
+OBJS = $(SRC_DIR)/monitor.o $(SRC_DIR)/dnsperf.o
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall
+DEPS = monitor.h
+LIBS = -lmysqlpp -lpthread -lldns -lm
+INCLUDES = -I/usr/include/mysql++ -I/usr/include/mysql -I/usr/include/ldns
 
-dns: dns.cpp
-	g++ dns.cpp -o dns -I/usr/include/ldns -lldns
+all: build $(EXEC)
+
+build:
+	+$(MAKE) -C $(SRC_DIR)
+
+$(EXEC): $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(INCLUDES) $(LIBS)
+
+.PHONY: clean
 
 clean:
-	rm *.o db dns
+	+$(MAKE) -C $(SRC_DIR) clean
+	$(RM) $(EXEC)

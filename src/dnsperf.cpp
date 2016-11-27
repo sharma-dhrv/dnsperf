@@ -7,10 +7,10 @@
 #include <thread>
 #include <ldns.h>
 
-DNSQueryMonitor monitor;
+DNSPerfMonitor *monitor_ptr;
 
 void sig_handler(int signal) {
-    monitor.shutdown();
+    monitor_ptr->shutdown();
     std::cout << "Initiating shutdown..." << std::endl;
 }
 
@@ -61,9 +61,8 @@ int main(int argc, char **argv) {
         db_host = std::string (env_db_host);
     }
 
-    std::cout << "DB=" << db_name << std::endl;
-
-    monitor = DNSQueryMonitor(refresh_interval, db_name, db_user, db_pass, db_host, domains);
+    DNSPerfMonitor monitor(refresh_interval, db_name, db_user, db_pass, db_host, domains);
+    monitor_ptr = &monitor;
 
 	struct sigaction sigIntHandler;
 
@@ -76,8 +75,7 @@ int main(int argc, char **argv) {
 
 	monitor.run();
 
-    std::chrono::seconds duration(5);
-    std::this_thread::sleep_for(duration);
-
+    std::cout << "DNSPerf has shutdown. Bye!" << std::endl;
+    
     return 0;
 }
