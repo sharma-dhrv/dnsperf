@@ -78,7 +78,7 @@ case "$action" in
 
     "show-summary")
         echo "'DomainSummary' Table Entries:-"
-        mysql -u $DB_USER -p$DB_PASSWORD -h $DB_HOST -e "SELECT domain_name AS 'Domain Name', mean_latency AS 'Mean Latency (usecs)', std_dev AS 'Latency Standard Deviation (usecs)', last_update_time AS 'Last Update Time' FROM DomainSummary;" -D $DB_NAME
+        mysql -u $DB_USER -p$DB_PASSWORD -h $DB_HOST -e "SELECT domain_name AS 'Domain Name', record_count AS 'Total Records', mean_latency AS 'Mean Latency (usecs)', std_dev AS 'Latency Standard Deviation (usecs)', first_update_time AS 'First Update Time', last_update_time AS 'Last Update Time' FROM DomainSummary;" -D $DB_NAME
         exit $?
         ;;
 

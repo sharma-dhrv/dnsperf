@@ -115,7 +115,8 @@ DNSPerfMonitor::init() {
                     "record_count INT DEFAULT 0,"
                     "mean_latency FLOAT(12,3) DEFAULT 0.0,"
                     "std_dev FLOAT(12,3) DEFAULT 0.0,"
-                    "last_update_time DATETIME DEFAULT CURRENT_TIMESTAMP"
+                    "first_update_time DATETIME DEFAULT NULL,"
+                    "last_update_time DATETIME DEFAULT NULL"
                     ");");
 
                 mysqlpp::SimpleResult res = query.execute();
@@ -179,7 +180,7 @@ DNSPerfMonitor::init() {
                         for (std::vector<std::string>::iterator it = domains.begin() ; it != this->domains.end(); ++it) {
                             std::string domain_name = *it;
                             std::stringstream query_str;
-                            query_str << "INSERT INTO DomainSummary VALUES (DEFAULT, \"" << domain_name << "\", DEFAULT, DEFAULT, DEFAULT, DEFAULT);";
+                            query_str << "INSERT INTO DomainSummary VALUES (DEFAULT, \"" << domain_name << "\", DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);";
                             mysqlpp::Query query = this->connection.query(query_str.str());
                             mysqlpp::SimpleResult res = query.execute();
                             
@@ -267,8 +268,11 @@ DNSPerfMonitor::update_dns_latency_records(std::string domain_name, int latency)
 		query_str << "UPDATE DomainSummary " <<
             "SET record_count = " << new_record_count <<
             ", mean_latency = " << new_mean_latency <<
-            ", std_dev = " << new_std_dev <<
-            ", last_update_time = CURRENT_TIMESTAMP " <<
+            ", std_dev = " << new_std_dev;
+        if (new_record_count == 1) {
+            query_str << ", first_update_time = CURRENT_TIMESTAMP";
+        }
+        query_str << ", last_update_time = CURRENT_TIMESTAMP " <<
             "WHERE domain_name=\"" << domain_name << "\";";
 
         mysqlpp::Query query = this->connection.query(query_str.str());
