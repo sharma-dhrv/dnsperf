@@ -1,3 +1,8 @@
+/**
+  * @author Dhruv Sharma (dhsharma@cs.ucsd.edu)
+  */
+
+
 #include <mysql++.h>
 #include <thread>
 #include <mutex>

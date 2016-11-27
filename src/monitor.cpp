@@ -1,3 +1,8 @@
+/**
+  * @author Dhruv Sharma (dhsharma@cs.ucsd.edu)
+  */
+
+
 #include <sstream>
 #include <cstdlib>
 #include <thread>
